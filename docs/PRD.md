@@ -17,16 +17,16 @@ Clientes B2B precisam frequentemente saber quando há mudança no status de seus
 
 ## Cenários de uso
 
-- Cenário 1: Atualização logística:
+- Cenário 1 - Atualização logística:
 Quando um pedido muda de PROCESSING para SHIPPED, o sistema do cliente recebe automaticamente uma notificação e inicia seus processos internos de logística.
 
-- Cenário 2: Rastreamento de entregas:
+- Cenário 2 - Rastreamento de entregas:
 O cliente configura o webhook para receber apenas eventos SHIPPED e DELIVERED, reduzindo volume de mensagens e focando em etapas críticas do fluxo.
 
-- Cenário 3: Recuperação após indisponibilidade:
+- Cenário 3 - Recuperação após indisponibilidade:
 Caso o endpoint do cliente fique indisponível temporariamente, o sistema tenta reenviar automaticamente o evento utilizando política de retry com backoff exponencial.
 
-- Cenário 4: Reprocessamento operacional:
+- Cenário 4 - Reprocessamento operacional:
 Após uma falha permanente, administradores podem reprocessar eventos armazenados na DLQ por meio de endpoint administrativo.
 
 ## Objetivos
@@ -180,11 +180,11 @@ O sistema deve processar eventos por meio de um worker dedicado.
 
 ---
 
-## RF-09: Entrega de Eventos
+### RF-09: Entrega de Eventos
 
 O sistema deve enviar notificações HTTP para os endpoints cadastrados.
 
-### Headers obrigatórios
+#### Headers obrigatórios
 
 ```http
 Content-Type: application/json
@@ -196,11 +196,11 @@ X-Webhook-Id
 
 ---
 
-## RF-10: Retry Automático
+### RF-10: Retry Automático
 
 O sistema deve reenviar eventos que falharem durante a entrega.
 
-### Política de retry
+#### Política de retry
 
 | Tentativa | Espera |
 |------------|---------|
@@ -214,11 +214,11 @@ Após a quinta falha, o evento deve ser movido para a DLQ.
 
 ---
 
-## RF-11: Dead Letter Queue (DLQ)
+### RF-11: Dead Letter Queue (DLQ)
 
 O sistema deve armazenar eventos definitivamente falhos em uma tabela dedicada.
 
-### Informações armazenadas
+#### Informações armazenadas
 - Payload original
 - Motivo da falha
 - Data da falha
@@ -226,34 +226,34 @@ O sistema deve armazenar eventos definitivamente falhos em uma tabela dedicada.
 
 ---
 
-## RF-12: Replay de Eventos
+### RF-12: Replay de Eventos
 
 O sistema deve permitir o reprocessamento manual de eventos presentes na DLQ.
 
-### Endpoint
+#### Endpoint
 
 ```http
 POST /admin/webhooks/dead-letter/:id/replay
 ```
 
-### Regras
+#### Regras
 - Somente usuários com role ADMIN podem executar a ação.
 - O replay deve ser auditado.
 - O evento deve ser reenfileirado como pendente.
 
 ---
 
-## RF-13: Histórico de Entregas
+### RF-13: Histórico de Entregas
 
 O sistema deve disponibilizar consulta do histórico das tentativas de entrega.
 
-### Endpoint
+#### Endpoint
 
 ```http
 GET /webhooks/:id/deliveries
 ```
 
-### Informações exibidas
+#### Informações exibidas
 - Payload enviado
 - Status da entrega
 - Resposta recebida
@@ -262,18 +262,18 @@ GET /webhooks/:id/deliveries
 
 ---
 
-## RF-14: Rotação de Secret
+### RF-14: Rotação de Secret
 
 O sistema deve permitir a rotação da secret utilizada na assinatura dos webhooks.
 
-### Regras
+#### Regras
 - A nova secret passa a ser válida imediatamente.
 - A secret antiga permanece válida durante 24 horas.
 - Após 24 horas a secret anterior deve ser invalidada automaticamente.
 
 ---
 
-## RF-15: Estrutura do Payload
+### RF-15: Estrutura do Payload
 
 O sistema deve enviar payload JSON contendo:
 
@@ -291,36 +291,36 @@ O sistema deve enviar payload JSON contendo:
 }
 ```
 
-### Regra
+#### Regra
 - Itens do pedido não devem ser enviados.
 - Clientes devem utilizar a API de pedidos para obter detalhes adicionais.
 
 ---
 
-# 7. Requisitos Não Funcionais
+## Requisitos Não Funcionais
 
-## RNF-01: Arquitetura
+### RNF-01: Arquitetura
 
 - Implementar Outbox Pattern utilizando MySQL.
 - Não adicionar Redis, Kafka ou outra infraestrutura de mensageria nesta fase.
 
 ---
 
-## RNF-02: Latência
+### RNF-02: Latência
 
 - O sistema deve entregar eventos em menos de 10 segundos após a mudança de status.
 - O polling do worker deve ocorrer a cada 2 segundos.
 
 ---
 
-## RNF-03: Disponibilidade e Confiabilidade
+### RNF-03: Disponibilidade e Confiabilidade
 
 - O sistema deve operar sob modelo de entrega At-Least-Once.
 - Nenhum evento pode ser perdido após o commit da transação principal.
 
 ---
 
-## RNF-04: Segurança
+### RNF-04: Segurança
 
 - Todo webhook deve utilizar HTTPS.
 - Todo payload deve ser assinado utilizando HMAC-SHA256.
@@ -328,20 +328,20 @@ O sistema deve enviar payload JSON contendo:
 
 ---
 
-## RNF-05: Timeout
+### RNF-05: Timeout
 
 - Requisições HTTP realizadas pelo worker devem possuir timeout máximo de 10 segundos.
 
 ---
 
-## RNF-06: Limite de Payload
+### RNF-06: Limite de Payload
 
 - O tamanho máximo permitido para um payload é de 64 KB.
 - Eventos acima desse limite devem falhar e ser tratados adequadamente.
 
 ---
 
-## RNF-07: Observabilidade
+### RNF-07: Observabilidade
 
 - Todas as operações devem gerar logs utilizando Pino.
 - Deve existir trilha de auditoria para replay de eventos.
@@ -349,7 +349,7 @@ O sistema deve enviar payload JSON contendo:
 
 ---
 
-## RNF-08: Compatibilidade Arquitetural
+### RNF-08: Compatibilidade Arquitetural
 
 A implementação deve reutilizar componentes já existentes:
 
@@ -361,7 +361,7 @@ A implementação deve reutilizar componentes já existentes:
 
 ---
 
-# 8. Decisões e Trade-offs Principais
+## Decisões e Trade-offs Principais
 
 | Decisão | Justificativa | Trade-off |
 |----------|-------------|-----------|
@@ -377,9 +377,9 @@ A implementação deve reutilizar componentes já existentes:
 
 ---
 
-# 9. Dependências
+## Dependências
 
-## Dependências Técnicas
+### Dependências Técnicas
 
 - MySQL
 - Prisma ORM
@@ -392,7 +392,7 @@ A implementação deve reutilizar componentes já existentes:
 
 ---
 
-## Dependências de Negócio
+### Dependências de Negócio
 
 - Aprovação da equipe de segurança
 - Disponibilização de documentação para clientes
@@ -400,7 +400,7 @@ A implementação deve reutilizar componentes já existentes:
 
 ---
 
-## Dependências Operacionais
+### Dependências Operacionais
 
 - Deploy de processo worker separado
 - Configuração de monitoramento
@@ -408,7 +408,7 @@ A implementação deve reutilizar componentes já existentes:
 
 ---
 
-# 10. Riscos e Mitigação
+## Riscos e Mitigação
 
 | Risco | Impacto | Mitigação |
 |---------|----------|------------|
@@ -421,11 +421,10 @@ A implementação deve reutilizar componentes já existentes:
 | Escalabilidade futura | Perda de ordering | Estratégias futuras de particionamento |
 | Falha ao gravar na Outbox | Inconsistência de negócio | Mesma transação SQL |
 
----
 
-# 11. Critérios de Aceitação
+## Critérios de Aceitação
 
-## Funcionais
+### Funcionais
 
 - [ ] Cliente consegue criar webhooks via API.
 - [ ] Cliente consegue listar webhooks.
@@ -437,7 +436,7 @@ A implementação deve reutilizar componentes já existentes:
 
 ---
 
-## Processamento
+### Processamento
 
 - [ ] Mudança de status gera evento na Outbox.
 - [ ] Evento é criado dentro da mesma transação do pedido.
@@ -448,7 +447,7 @@ A implementação deve reutilizar componentes já existentes:
 
 ---
 
-## Segurança
+### Segurança
 
 - [ ] URLs HTTP são rejeitadas.
 - [ ] HMAC-SHA256 é enviado corretamente.
@@ -459,7 +458,7 @@ A implementação deve reutilizar componentes já existentes:
 
 ---
 
-## Qualidade
+### Qualidade
 
 - [ ] Payload respeita limite de 64 KB.
 - [ ] Timeout máximo de envio é 10 segundos.
@@ -468,23 +467,23 @@ A implementação deve reutilizar componentes já existentes:
 
 ---
 
-# 12. Estratégia de Testes e Validação
+## Estratégia de Testes e Validação
 
-## Testes Unitários
+### Testes Unitários
 
-### Configuração de Webhooks
+#### Configuração de Webhooks
 - Criação
 - Atualização
 - Remoção
 - Validações de schema
 
-### Segurança
+#### Segurança
 - Geração de secret
 - Rotação de secret
 - Assinatura HMAC-SHA256
 - Validação HTTPS
 
-### Processamento
+#### Processamento
 - Filtro de eventos
 - Criação de payload snapshot
 - Cálculo de backoff
@@ -492,63 +491,35 @@ A implementação deve reutilizar componentes já existentes:
 
 ---
 
-## Testes de Integração
+### Testes de Integração
 
-### Outbox
+#### Outbox
 - Inserção durante mudança de status
 - Operação dentro da transação
 - Rollback em caso de falha
 
-### Worker
+#### Worker
 - Leitura da Outbox
 - Processamento em lote
 - Atualização de status
 
-### DLQ
+#### DLQ
 - Movimentação após falhas
 - Replay administrativo
 
----
+### Testes de Carga
 
-## Testes End-to-End
-
-### Fluxo Principal
-
-```text
-Mudança de status
-→ Evento criado
-→ Evento entra na Outbox
-→ Worker processa
-→ Webhook enviado
-→ Entrega registrada
-```
-
-### Fluxos de Falha
-
-```text
-Falha no endpoint
-→ Retry automático
-→ Exaustão de tentativas
-→ DLQ
-→ Replay administrativo
-```
-
----
-
-## Testes de Carga
-
-### Objetivos
+#### Objetivos
 
 - Validar crescimento da Outbox.
 - Validar throughput do worker.
 - Medir impacto do polling no MySQL.
 - Simular grandes volumes de alterações de status.
 
----
 
-## Testes de Segurança
+### Testes de Segurança
 
-### Verificações
+#### Verificações
 
 - TLS obrigatório.
 - Assinatura HMAC válida.
